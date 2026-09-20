@@ -24,7 +24,6 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(project(":observability-testing"))
-    testImplementation(project(":identifiers"))
 }
 
 kotlin {

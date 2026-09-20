@@ -4,7 +4,6 @@ import com.primandproper.platform.circuitbreaking.CircuitBrokenException
 import com.primandproper.platform.circuitbreaking.CircuitState
 import com.primandproper.platform.circuitbreaking.NoopCircuitBreaker
 import com.primandproper.platform.circuitbreaking.RecordingCircuitBreaker
-import com.primandproper.platform.identifiers.newUuid
 import com.primandproper.platform.observability.Keys
 import com.primandproper.platform.observability.Logger
 import com.primandproper.platform.observability.NoopLogger
@@ -14,6 +13,7 @@ import com.segment.analytics.messages.Message
 import com.segment.analytics.messages.MessageBuilder
 import com.segment.analytics.messages.TrackMessage
 import kotlinx.coroutines.test.runTest
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -68,7 +68,7 @@ class SegmentEventReporterTest {
     fun `addUser enqueues an identify and observes the user id`() =
         runTest {
             val (reporter, obs, captured) = recording()
-            val userID = newUuid()
+            val userID = UUID.randomUUID().toString()
 
             reporter.addUser(userID, mapOf("plan" to "pro"))
 
@@ -82,7 +82,7 @@ class SegmentEventReporterTest {
     fun `eventOccurred enqueues a track for the identified user`() =
         runTest {
             val (reporter, obs, captured) = recording()
-            val userID = newUuid()
+            val userID = UUID.randomUUID().toString()
 
             reporter.eventOccurred("signup", userID, mapOf("k" to "v"))
 
@@ -97,7 +97,7 @@ class SegmentEventReporterTest {
     fun `eventOccurredAnonymous enqueues a track with an anonymous id`() =
         runTest {
             val (reporter, obs, captured) = recording()
-            val anonymousID = newUuid()
+            val anonymousID = UUID.randomUUID().toString()
 
             reporter.eventOccurredAnonymous("page_view", anonymousID)
 
@@ -113,7 +113,7 @@ class SegmentEventReporterTest {
             val breaker = RecordingCircuitBreaker(reject = true)
             val (reporter, _, captured) = recording(breaker = breaker)
 
-            val error = assertFailsWith<Throwable> { reporter.addUser(newUuid()) }
+            val error = assertFailsWith<Throwable> { reporter.addUser(UUID.randomUUID().toString()) }
             assertTrue(error is CircuitBrokenException)
             assertTrue(captured.isEmpty())
             assertEquals(1, breaker.rejectionCount)
@@ -125,13 +125,13 @@ class SegmentEventReporterTest {
             val breaker = RecordingCircuitBreaker()
             val (reporter, _, _) = recording(breaker = breaker, onEnqueue = { throw Boom() })
 
-            assertFailsWith<Boom> { reporter.eventOccurred("signup", newUuid()) }
+            assertFailsWith<Boom> { reporter.eventOccurred("signup", UUID.randomUUID().toString()) }
             assertEquals(1, breaker.failureCount)
             assertEquals(CircuitState.CLOSED, breaker.state.value)
         }
 
     /** A message to hand the callback; its content is irrelevant since the callback never logs it. */
-    private fun anyMessage(): Message = TrackMessage.builder("e").userId(newUuid()).build()
+    private fun anyMessage(): Message = TrackMessage.builder("e").userId(UUID.randomUUID().toString()).build()
 
     @Test
     fun `delivery failure logs an error and counts a breaker failure`() {

@@ -25,7 +25,6 @@ include(
     ":observability-koin",
     // Tier 1 — foundation & networking spine
     ":errors",
-    ":identifiers",
     ":random",
     ":retry",
     ":circuitbreaking",
