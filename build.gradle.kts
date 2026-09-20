@@ -11,9 +11,9 @@ plugins {
 // including its dependencies on sibling modules — already carries the group JitPack serves. That
 // leaves JitPack only the version to substitute (from the git tag, which it does reliably) and
 // sidesteps its unpredictable inter-module *group* rewriting (jitpack.io#4112). Consumers then use
-// `com.github.primandproper.platform-kt:<module>:<tag>`. Override with `-PpublishGroup=…` for a
+// `com.github.primandproper.primitives-kt:<module>:<tag>`. Override with `-PpublishGroup=…` for a
 // different repository (e.g. a future Maven Central release under com.primandproper.platform).
-group = (findProperty("publishGroup") as String?) ?: "com.github.primandproper.platform-kt"
+group = (findProperty("publishGroup") as String?) ?: "com.github.primandproper.primitives-kt"
 // Defaults to a snapshot for local `publishToMavenLocal`; the tag-triggered CI publish job
 // (.github/workflows/publish.yml) passes `-PpublishVersion=<tag>` so the remote artifacts carry the
 // release version. Mirrors the `publishGroup` override above.
@@ -52,7 +52,7 @@ subprojects {
             repositories {
                 maven {
                     name = "GitHubPackages"
-                    url = uri("https://maven.pkg.github.com/primandproper/platform-kt")
+                    url = uri("https://maven.pkg.github.com/primandproper/primitives-kt")
                     credentials {
                         username = ghActor
                         password = ghToken

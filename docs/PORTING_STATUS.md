@@ -1,3 +1,10 @@
+> **Superseded in part.** This file tracked parity with `platform-go` back when the goal was to
+> port all of it. It isn't any more: `primitives-kt` is scoped to the client tier, and parity is
+> deliberately partial. Rows below for modules that no longer exist here — server, routing,
+> database, messagequeue, distributedlock, email, search, capitalism, llm, embeddings,
+> healthcheck, authentication and the Redis/S3/Postgres/Elasticsearch backends — record history,
+> not outstanding work. See the README for what's in scope now.
+
 # Porting Status & Game Plan: `platform-go` → `platform-kt`
 
 _Generated 2026-07-06; updated 2026-07-07 (port complete — Tiers 1–4 all landed). Compares the Kotlin

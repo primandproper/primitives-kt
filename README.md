@@ -1,17 +1,21 @@
-# platform-kt
+# primitives-kt
 
-A batteries-included **Kotlin platform library** — the Kotlin/JVM (and, where it makes sense,
-Android) port of [`platform-go`](../platform-go). It's the substrate you build a service on before
-you write any business logic: observability, HTTP, resilience, caching, a database/router/server
-spine, a message queue, auth, LLM/embeddings clients, and a couple dozen more — each behind a small,
-consistent interface, traced and log-correlated end to end.
+A batteries-included **Kotlin primitives library** — the Kotlin/JVM (and, where it makes sense,
+Android) port of [`primitives-go`](../primitives-go): observability, HTTP, resilience, caching,
+crypto, analytics, feature flags, push and a couple dozen more — each behind a small, consistent
+interface, traced and log-correlated end to end.
 
-> **Status:** the port is complete. **38 packages across 73 Gradle modules**, Tiers 1–4, building,
-> testing and linting green (**1,410 tests, 0 failures**). Pure-JVM modules are consumable from any
-> server/JVM project **with no Android tooling** (see [Using platform-kt](#using-platform-kt-in-your-project)).
+**Scope: the client.** Kotlin builds apps here, never services — `platform-go` is the only server
+tier there is — so this library carries nothing whose reason to exist is sitting beside a database,
+a broker, an object store or a secret manager. Talking to a service built on `platform-go` is
+`platform-client-kt`'s job, not this library's.
+
+> **Status:** scoped to the client tier — **45 Gradle modules**, building, testing and linting
+> green. Parity with `primitives-go` is deliberately partial; see below. Pure-JVM modules are consumable from any
+> server/JVM project **with no Android tooling** (see [Using primitives-kt](#using-primitives-kt-in-your-project)).
 
 **Jump to:** [What it gives you](#what-it-gives-you) · [Quick taste](#quick-taste) ·
-[Module catalog](#module-catalog) · [Using it](#using-platform-kt-in-your-project) ·
+[Module catalog](#module-catalog) · [Using it](#using-primitives-kt-in-your-project) ·
 [Building](#building) · **Guides:** [cookbook](docs/EXAMPLES.md) ·
 [observability](docs/USAGE.md) · [porting status](docs/PORTING_STATUS.md)
 
@@ -36,11 +40,11 @@ Three properties run through the whole tree:
 3. **Noops everywhere.** Telemetry, breakers, and backends all degrade to no-ops when absent —
    nothing throws for want of a logger. You wire in exactly what you need.
 
-**Dual-target.** `platform-go` is backend-only; Kotlin runs on both the server *and* Android, so the
-pure-JVM modules serve both, and a handful of packages add an Android counterpart — sometimes with the
-data flow **flipped** (`eventstream` *emits* SSE/WS on the server but *consumes* it on Android;
-`notifications` *sends* push server-side but *receives* it on-device; `uploads` adds a signed-URL
-client uploader).
+**Dual-target.** Kotlin runs on the JVM *and* Android, so the pure-JVM modules serve desktop and
+tooling consumers while a handful of packages add an Android counterpart. Note that several of these
+are the *receiving* half of a name that means the opposite in `primitives-go`: `eventstream`
+**consumes** SSE/WS into a `Flow`, `notifications` **receives** push rather than sending it, and
+`uploads` is the signed-URL client uploader, not an object-store sink.
 
 ## Quick taste
 
@@ -70,23 +74,20 @@ val resp = http.execute(HttpRequest.get("https://api.example.com/health"))
 val breaker = CircuitBreaker { failureThreshold = 5; resetTimeout = 10.seconds }
 val data = breaker.execute { dependency.call() }        // throws ErrCircuitBroken while OPEN
 
-// A typed cache — swap InMemoryCache for a Redis-backed one with the same interface
+// A typed cache — swap InMemoryCache for the DataStore-backed one, same interface
 val cache: BatchCache<String> = InMemoryCache()
 cache.set("greeting", "hello"); cache.get("greeting")   // "hello"
 
-// A Claude completion (key redacted from telemetry)
-val llm = AnthropicLlmProvider(apiKey = key, httpClient = http)
-val answer = llm.complete(CompletionParams(
-    model = AnthropicModels.OPUS_4_8,
-    messages = listOf(Message(Role.USER, "Say hi.")),
-)).content
+// A token bucket, so you throttle before you spend the request
+val limiter = InMemoryRateLimiter(requestsPerSecond = 10.0, burst = 20)
+if (limiter.allow("sync")) syncNow()
 ```
 
 ## Module catalog
 
-73 modules, grouped by the tier they were ported in. Depend on just the ones you need — every JVM
+45 modules, grouped by the tier they were ported in. Depend on just the ones you need — every JVM
 module depends only on other JVM modules. Coordinates are
-`com.github.primandproper.platform-kt:<module>:<tag>` (see [Using it](#using-platform-kt-in-your-project)).
+`com.github.primandproper.primitives-kt:<module>:<tag>` (see [Using it](#using-primitives-kt-in-your-project)).
 
 ### Observability — the founding pillar
 
@@ -121,38 +122,27 @@ Each ships core `-api` + one primary backend + a real Android module.
 
 | Module(s) | What |
 |---|---|
-| `:cache-api` · `:cache-redis` · `:cache-android` | Typed `Cache`/`BatchCache`: in-memory + Redis (Lettuce, breaker-wrapped) + DataStore on Android. |
+| `:cache-api` · `:cache-android` | Typed `Cache`/`BatchCache`: in-memory + DataStore on Android. |
 | `:cryptography-api` · `:cryptography-jvm` · `:cryptography-android` | AES-256-GCM AEAD + SHA/checksum hashers; AndroidKeyStore backend. |
 | `:secrets-api` · `:secrets-android` | `SecretSource`: env provider (value never touches a span/log) + EncryptedSharedPreferences. |
 | `:featureflags-api` · `:featureflags-launchdarkly` · `:featureflags-android` | Flag evaluation: in-memory + LaunchDarkly (breaker-wrapped) + local store. |
 | `:analytics-api` · `:analytics-segment` · `:analytics-android` | Event reporting: Segment + `multisource` composite + on-device buffering. |
 
-### Tier 3 — server platform
+### Tier 3 — transport & storage
 
-The near-1:1 Kotlin server counterpart to `platform-go`, retargeted onto the JVM ecosystem.
+What survived the server-tier cut: the pieces a client still needs on its own side of the wire.
 
 | Module(s) | What |
 |---|---|
-| `:server-api` · `:server-ktor` | HTTP server over Ktor/Netty; `MountableHandler` keeps the router↔server split. |
-| `:routing-api` · `:routing-ktor` | Framework-independent router + `RouteParamManager`, backed by Ktor routing. |
-| `:database-api` · `:database-exposed` | `DatabaseClient`/`SqlQueryExecutor` over Postgres/Exposed (H2 in tests). |
-| `:ratelimiting-api` · `:ratelimiting-redis` | Token-bucket `RateLimiter`: in-memory + Redis sliding window. |
-| `:messagequeue-api` · `:messagequeue-redis` | Publisher/consumer over Redis pub/sub (breaker-wrapped). |
-| `:distributedlock-api` · `:distributedlock-redis` · `:distributedlock-postgres` | `Locker`/`Lock`: in-memory + Redis SET-NX + Postgres advisory locks. |
-| `:email-api` · `:email-resend` | `Emailer` over Resend REST, with recipient-injection defenses. |
-| `:uploads-api` · `:uploads-s3` · `:uploads-android` | `UploadManager`/`Bucket`: in-mem/filesystem + S3 + signed-URL client uploader. |
-| `:eventstream-api` · `:eventstream-ktor` · `:eventstream-android` | SSE/WS: emit on the server, consume into a `Flow` on Android. |
-| `:search-api` · `:search-elasticsearch` · `:search-pgvector` | Text + vector search over Elasticsearch and pgvector. |
-| `:capitalism-api` · `:capitalism-stripe` | Payments over stripe-java, with offline webhook-signature verification. |
-| `:healthcheck` · `:cookies` · `:encoding` | Concurrent health checks · AES-GCM sealed cookies · kotlinx.serialization JSON. |
+| `:ratelimiting-api` | Token-bucket `RateLimiter`, in-memory — client-side throttling before you spend a request. |
+| `:uploads-api` · `:uploads-android` | `UploadManager`/`Bucket`: in-mem/filesystem + signed-URL client uploader. |
+| `:eventstream-api` · `:eventstream-android` | SSE/WS consumed into a `Flow` on Android. |
+| `:cookies` · `:encoding` | AES-GCM sealed cookies · kotlinx.serialization JSON. |
 
 ### Tier 4 — domain, AI & utilities
 
 | Module(s) | What |
 |---|---|
-| `:llm-api` · `:llm-anthropic` | Chat completions over the Anthropic Messages API (current Claude models; key redacted). |
-| `:embeddings-api` · `:embeddings-openai` | Text embeddings over OpenAI (breaker-wrapped). |
-| `:authentication` | Argon2id password hashing + HS256 JWTs + RFC 6238 TOTP. |
 | `:notifications-api` · `:notifications-fcm` · `:notifications-android` | Push via FCM HTTP v1 (send) + Android receive-side mapping. |
 | `:qrcodes` | ZXing PNG QR codes for `otpauth://` URIs (pairs with TOTP). |
 | `:compression` · `:files` · `:numbers` · `:bitmask` | zstd/S2 · nio line/chunk readers · BigDecimal helpers · width-typed bitmasks. |
@@ -161,9 +151,9 @@ The near-1:1 Kotlin server counterpart to `platform-go`, retargeted onto the JVM
 The authoritative per-package status — which backends shipped and which vendor seams remain open — is
 **[docs/PORTING_STATUS.md](docs/PORTING_STATUS.md)**.
 
-## Using platform-kt in your project
+## Using primitives-kt in your project
 
-platform-kt publishes through [JitPack](https://jitpack.io) — no artifact registry to log into and no
+primitives-kt publishes through [JitPack](https://jitpack.io) — no artifact registry to log into and no
 credentials. To cut a release, make the GitHub repo public and push a tag:
 
 ```bash
@@ -171,7 +161,7 @@ git tag v0.1.0 && git push origin v0.1.0
 ```
 
 Then, in the consuming project, add the JitPack repository and depend on the modules you want by
-coordinate — `com.github.primandproper.platform-kt:<module>:<tag>`:
+coordinate — `com.github.primandproper.primitives-kt:<module>:<tag>`:
 
 ```kotlin
 // settings.gradle.kts
@@ -184,21 +174,20 @@ dependencyResolutionManagement {
 
 // build.gradle.kts
 dependencies {
-    implementation("com.github.primandproper.platform-kt:cache-api:v0.1.0")
-    implementation("com.github.primandproper.platform-kt:cache-redis:v0.1.0")
+    implementation("com.github.primandproper.primitives-kt:cache-api:v0.1.0")
 }
 ```
 
 JitPack builds the tag on first request (later resolves are cached and fast). It compiles only the
 **pure-JVM** modules — the Android-library modules are excluded via `-PjvmOnly` (see `jitpack.yml` and
-the toggle in `settings.gradle.kts`) — so **a server/JVM project consumes platform-kt with no Android
+the toggle in `settings.gradle.kts`) — so **a JVM project consumes primitives-kt with no Android
 tooling on either side**, and JitPack itself never needs the Android SDK. Every JVM module depends
 only on other JVM modules, so no `.aar` is ever pulled into a server build.
 
 ### Android modules (`.aar`)
 
 Ten packages ship a real Android-library counterpart. They carry the **same group and version scheme**
-as the JVM modules — `com.github.primandproper.platform-kt:<module>:<tag>` — but package as `.aar`:
+as the JVM modules — `com.github.primandproper.primitives-kt:<module>:<tag>` — but package as `.aar`:
 
 | Module (artifact ID) | What |
 |---|---|
@@ -270,7 +259,7 @@ public packages) and depending on the same coordinate as the JVM modules:
 ```kotlin
 repositories {
     maven {
-        url = uri("https://maven.pkg.github.com/primandproper/platform-kt")
+        url = uri("https://maven.pkg.github.com/primandproper/primitives-kt")
         credentials {
             username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
             password = providers.gradleProperty("gpr.token").orNull ?: System.getenv("GITHUB_TOKEN")
@@ -278,7 +267,7 @@ repositories {
     }
 }
 dependencies {
-    implementation("com.github.primandproper.platform-kt:cryptography-android:v0.1.0")
+    implementation("com.github.primandproper.primitives-kt:cryptography-android:v0.1.0")
 }
 ```
 
@@ -295,7 +284,7 @@ To try changes before tagging, publish to your Maven Local repo and consume via 
 ./gradlew publishToMavenLocal -PjvmOnly  # JVM modules only, no Android SDK required
 ```
 
-The coordinate is the same `com.github.primandproper.platform-kt:<module>` either way, so your
+The coordinate is the same `com.github.primandproper.primitives-kt:<module>` either way, so your
 `implementation(...)` lines are identical for JitPack and Maven Local — only the repository differs.
 
 ## Building
@@ -337,6 +326,6 @@ Android Lint) — the same target you run locally, so a green `make check` predi
 
 - **Metrics & profiling pillars** — named, not silently dropped. When metrics lands,
   `Observability`/`ObservabilityConfig`/provider enums extend back toward Go's 4-pillar shape, and the
-  `TODO(metrics)` seams across `circuitbreaking`/`cache`/`database`/`ratelimiting`/… reattach.
+  `TODO(metrics)` seams across `circuitbreaking`/`cache`/`ratelimiting`/… reattach.
 - **Three Go idioms** with no worthwhile Kotlin analog — `pointer` (Kotlin nullability obviates it),
   `reflection`, and `panicking` (exceptions + `runCatching` cover it).

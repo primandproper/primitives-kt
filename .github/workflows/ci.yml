@@ -32,11 +32,18 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # ktlint is applied to all 73 subprojects, so Gradle must configure the 10 Android modules on
+      # ktlint is applied to every subproject, so Gradle must configure the 10 Android modules on
       # every task — even ktlintCheck. That requires the Android SDK + accepted licenses.
-      # setup-android installs cmdline-tools, accepts all licenses, and exports ANDROID_HOME /
-      # ANDROID_SDK_ROOT (so no local.properties is needed).
+      # setup-android accepts all licenses and exports ANDROID_HOME / ANDROID_SDK_ROOT (so no
+      # local.properties is needed).
+      #
+      # `packages: ''` is load-bearing: the action's default is `tools platform-tools`, and the
+      # obsolete `tools` package was withdrawn from the Android repository, so the default now
+      # fails with "Failed to find package 'tools'". The next step installs what the build
+      # actually targets.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: ""
 
       # Provision the exact SDK the build targets (compileSdk 35) rather than relying on AGP
       # auto-download.

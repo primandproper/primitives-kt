@@ -1,6 +1,6 @@
 # JitPack builds this repo on demand when someone requests a tagged version: it checks out the tag,
 # runs the install command below under the JDK here, and re-hosts whatever the build installs into
-# the local Maven repo — serving it as `com.github.primandproper.platform-kt:<module>:<tag>`.
+# the local Maven repo — serving it as `com.github.primandproper.primitives-kt:<module>:<tag>`.
 #
 # `-PjvmOnly` excludes the Android-library modules from the build (see settings.gradle.kts), so
 # JitPack only ever compiles the pure-JVM modules and never needs the Android SDK. That's what lets
