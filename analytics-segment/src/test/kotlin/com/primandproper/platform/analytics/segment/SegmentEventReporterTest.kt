@@ -12,8 +12,8 @@ import com.segment.analytics.messages.IdentifyMessage
 import com.segment.analytics.messages.Message
 import com.segment.analytics.messages.MessageBuilder
 import com.segment.analytics.messages.TrackMessage
-import java.util.UUID
 import kotlinx.coroutines.test.runTest
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
