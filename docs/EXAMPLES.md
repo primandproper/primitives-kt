@@ -1,4 +1,4 @@
-# platform-kt by example
+# primitives-kt by example
 
 A cookbook of short, real snippets — one per package — so you can see the shape of each API at a
 glance. For the observability stack (the founding pillar) there's a dedicated task-oriented guide in
@@ -12,7 +12,7 @@ open an issue rather than guessing.
 Learn these once and every package reads the same way:
 
 - **Package root.** Everything is under `com.primandproper.platform.<area>` (e.g.
-  `com.primandproper.platform.cache`). Backends live in a sub-package (`...cache.redis`).
+  `com.primandproper.platform.cache`). Backends live in a sub-package (`...cache.datastore`).
 - **Observability is opt-in, never required.** Factories that can emit telemetry take
   `logger: Logger? = null`, `tracerProvider: TracerProvider? = null`, or a bundled
   `observer: Observer` — all defaulting to no-ops. Omit them and nothing breaks; pass them and the
@@ -142,9 +142,9 @@ http.close()
 
 ## Tier 2 — core cross-surface services
 
-### `:cache-*` — typed cache, in-memory or Redis
+### `:cache-*` — typed cache, in-memory or DataStore
 
-`get` returns `T?` (null is a miss). `InMemoryCache` and `RedisCache` are both `BatchCache`.
+`get` returns `T?` (null is a miss). `InMemoryCache` and the DataStore cache are both `BatchCache`.
 
 ```kotlin
 import com.primandproper.platform.cache.*
@@ -152,14 +152,6 @@ import com.primandproper.platform.cache.*
 val cache: BatchCache<String> = InMemoryCache()
 cache.set("greeting", "hello")
 val v: String? = cache.get("greeting")
-
-// Redis-backed via the unifying factory:
-import kotlin.time.Duration.Companion.hours
-val redis = provideCache(
-    config = CacheConfig(CacheProvider.REDIS, expiry = 1.hours),
-    codec = StringCacheCodec,                                   // your T <-> String codec
-    redisConfig = RedisCacheConfig(queueAddresses = listOf("localhost:6379")),
-)
 ```
 
 ### `:cryptography-*` — AEAD encryption + hashing
@@ -219,55 +211,6 @@ reporter.close()
 
 ## Tier 3 — server platform
 
-### `:server-*` + `:routing-*` — an HTTP service
-
-```kotlin
-import com.primandproper.platform.routing.*
-import com.primandproper.platform.routing.ktor.provideRouter
-import com.primandproper.platform.server.*
-import com.primandproper.platform.server.http.provideHttpServer
-import kotlin.time.Duration.Companion.seconds
-
-val router = provideRouter(RoutingConfig(RoutingProvider.KTOR, RouterSettings(serviceName = "svc")))
-
-router.get("/health") { call -> call.respondText(200, "ok") }
-router.get("/things/{id}") { call ->
-    call.respondText(200, "thing ${call.pathParameter("id")}")
-}
-router.route("/api") { sub ->
-    sub.get("/ping") { call -> call.respondText(200, "pong") }
-}
-
-val server = provideHttpServer(
-    HttpServerConfig(port = 8080, startupDeadline = 5.seconds),
-    router,
-    serviceName = "svc",
-)
-server.serve()          // suspend; returns once bound (non-blocking)
-// server.shutdown()    // graceful drain
-```
-
-### `:database-*` — Postgres via Exposed
-
-```kotlin
-import com.primandproper.platform.database.config.*
-import com.primandproper.platform.database.postgres.provideDatabaseClient
-
-val db = provideDatabaseClient(
-    DatabaseConfig(
-        provider = DatabaseProviders.POSTGRES,
-        readConnection = ConnectionDetails(
-            host = "localhost", port = 5432,
-            username = "app", password = "secret", database = "app",
-        ),
-    ),
-)
-db.use { client ->
-    // Query through client.writeDataSource / client.readDataSource (JDBC or Exposed).
-    client.currentTime()
-}
-```
-
 ### `:ratelimiting-*` — token bucket
 
 ```kotlin
@@ -277,74 +220,21 @@ val limiter = InMemoryRateLimiter(requestsPerSec = 10.0, burstSize = 20)
 if (limiter.allow(clientIp)) handle() else reject429()   // suspend; true = within limit
 ```
 
-For a shared limit across instances, use `provideRateLimiter(RateLimitingConfig(provider = REDIS), …)`
-from `:ratelimiting-redis`.
+The limiter is in-process and client-side: it throttles *you* before you spend a request. A limit
+shared across callers is the server's job, enforced by the service you're calling.
 
-### `:messagequeue-*` — publish / subscribe
-
-```kotlin
-import com.primandproper.platform.messagequeue.*
-import com.primandproper.platform.messagequeue.redis.*
-
-val publishers = providePublisherProvider(
-    MessageQueueProvider.REDIS,
-    RedisMessageQueueConfig(queueAddresses = listOf("localhost:6379")),
-)
-val orders = publishers.providePublisher("orders")
-orders.publish("order-created")                          // suspend
-
-// Consumer side:
-val consumers = provideConsumerProvider(
-    MessageQueueProvider.REDIS,
-    RedisMessageQueueConfig(queueAddresses = listOf("localhost:6379")),
-)
-val consumer = consumers.provideConsumer("orders") { bytes -> handle(bytes) }
-consumer.consume()   // suspend; runs until the coroutine is cancelled
-```
-
-### `:distributedlock-*` — mutual exclusion with a TTL
-
-```kotlin
-import com.primandproper.platform.distributedlock.*
-import kotlin.time.Duration.Companion.seconds
-
-val locker = MemoryLocker()                              // or RedisLocker / PostgresLocker
-val lock = locker.acquire("account:42", ttl = 30.seconds)   // throws ErrLockNotAcquired if held
-try {
-    // critical section
-} finally {
-    lock.release()
-}
-```
-
-### `:email-*` — transactional email
-
-```kotlin
-import com.primandproper.platform.email.*
-import com.primandproper.platform.email.resend.ResendEmailer
-import com.primandproper.platform.httpclient.okhttp.OkHttpHttpClient
-
-val emailer = ResendEmailer(apiToken = "re_…", httpClient = OkHttpHttpClient.create())
-emailer.sendEmail(OutboundEmailMessage(
-    toAddress = "user@example.com",
-    fromAddress = "no-reply@myapp.com",
-    subject = "Welcome",
-    htmlContent = "<p>Hello!</p>",
-))
-```
-
-### `:uploads-*` — blob storage
+### `:uploads-*` — signed-URL client uploads
 
 ```kotlin
 import com.primandproper.platform.uploads.*
-import com.primandproper.platform.uploads.objectstorage.MemoryBucket   // or S3, filesystem
+import com.primandproper.platform.uploads.objectstorage.MemoryBucket   // or filesystem
 
 val uploads = Uploader(MemoryBucket(), bucketName = "avatars")
 uploads.saveBytes("u-123/avatar.png", pngBytes)          // suspend
 val bytes = uploads.readBytes("u-123/avatar.png")        // suspend
 ```
 
-### `:eventstream-*` — server-sent events
+### `:eventstream-*` — consuming server-sent events
 
 ```kotlin
 import com.primandproper.platform.eventstream.*
@@ -367,70 +257,6 @@ fun Application.streaming(observer: Observer) {
 ---
 
 ## Tier 4 — domain, AI & utilities
-
-### `:llm-*` — chat completions
-
-Defaults to the current Claude models; the API key is redacted from telemetry.
-
-```kotlin
-import com.primandproper.platform.llm.*
-import com.primandproper.platform.llm.anthropic.*
-import com.primandproper.platform.httpclient.okhttp.OkHttpHttpClient
-
-val llm = AnthropicLlmProvider(
-    apiKey = System.getenv("ANTHROPIC_API_KEY"),
-    httpClient = OkHttpHttpClient.create(),
-)
-val result = llm.complete(CompletionParams(
-    model = AnthropicModels.OPUS_4_8,        // "claude-opus-4-8" (also the default)
-    messages = listOf(Message(Role.USER, "Summarize the CAP theorem in one sentence.")),
-))
-println(result.content)                       // suspend
-```
-
-### `:embeddings-*` — vector embeddings
-
-```kotlin
-import com.primandproper.platform.embeddings.*
-import com.primandproper.platform.embeddings.openai.OpenAiEmbedder
-import com.primandproper.platform.httpclient.okhttp.OkHttpHttpClient
-
-val embedder = OpenAiEmbedder(
-    apiKey = System.getenv("OPENAI_API_KEY"),
-    httpClient = OkHttpHttpClient.create(),
-)
-val embedding = embedder.generateEmbedding(EmbeddingInput(content = "hello world"))   // suspend
-println(embedding.vector.size)                // 1536 for text-embedding-3-small
-```
-
-### `:authentication` — passwords, JWTs, TOTP
-
-```kotlin
-import com.primandproper.platform.authentication.argon2.newArgon2Authenticator
-
-val auth = newArgon2Authenticator()
-val hash = auth.hashPassword("s3cret")               // suspend; Argon2id
-val ok   = auth.passwordMatches(hash, "s3cret")      // suspend; true
-```
-
-```kotlin
-import com.primandproper.platform.authentication.tokens.jwt.newJwtSigner
-import kotlin.time.Duration.Companion.minutes
-
-val signer = newJwtSigner(issuer = "myapp", audience = "myapp-web", signingKey = key /* ByteArray */)
-val issued = signer.issueToken(subject = "user-123", expiry = 15.minutes)   // suspend; HS256
-val claims = signer.parseToken(issued.token)                                 // suspend; validates
-val subject = claims.subject()
-```
-
-```kotlin
-import com.primandproper.platform.authentication.totp.*
-import java.time.Instant
-
-val code  = generateTotpCode(secret = base32Secret, time = Instant.now())    // RFC 6238, 6-digit
-val valid = validateTotpCode(code, base32Secret, Instant.now())              // Boolean
-val uri   = totpProvisioningUri(issuer = "MyApp", accountName = "user@example.com", secret = base32Secret)
-```
 
 ### `:notifications-*` — push notifications
 
