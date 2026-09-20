@@ -4,7 +4,6 @@ import com.primandproper.platform.circuitbreaking.CircuitBrokenException
 import com.primandproper.platform.circuitbreaking.CircuitState
 import com.primandproper.platform.circuitbreaking.NoopCircuitBreaker
 import com.primandproper.platform.circuitbreaking.RecordingCircuitBreaker
-import java.util.UUID
 import com.primandproper.platform.observability.Keys
 import com.primandproper.platform.observability.Logger
 import com.primandproper.platform.observability.NoopLogger
@@ -13,6 +12,7 @@ import com.segment.analytics.messages.IdentifyMessage
 import com.segment.analytics.messages.Message
 import com.segment.analytics.messages.MessageBuilder
 import com.segment.analytics.messages.TrackMessage
+import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
