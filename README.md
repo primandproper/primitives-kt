@@ -10,7 +10,11 @@ tier there is — so this library carries nothing whose reason to exist is sitti
 a broker, an object store or a secret manager. Talking to a service built on `platform-go` is
 `platform-client-kt`'s job, not this library's.
 
-> **Status:** scoped to the client tier — **45 Gradle modules**, building, testing and linting
+Identifiers are the case worth naming, because the package name does not sound server-tier: a
+server issues IDs and a client receives opaque strings, so minting one here only risks having
+it rejected by the service you send it to. There is no `:identifiers` module.
+
+> **Status:** scoped to the client tier — **44 Gradle modules**, building, testing and linting
 > green. Parity with `primitives-go` is deliberately partial; see below. Pure-JVM modules are consumable from any
 > server/JVM project **with no Android tooling** (see [Using primitives-kt](#using-primitives-kt-in-your-project)).
 
@@ -85,7 +89,7 @@ if (limiter.allow("sync")) syncNow()
 
 ## Module catalog
 
-45 modules, grouped by the tier they were ported in. Depend on just the ones you need — every JVM
+44 modules, grouped by the tier they were ported in. Depend on just the ones you need — every JVM
 module depends only on other JVM modules. Coordinates are
 `com.github.primandproper.primitives-kt:<module>:<tag>` (see [Using it](#using-primitives-kt-in-your-project)).
 
@@ -109,7 +113,6 @@ The small, widely-depended-on substrate. All pure Kotlin/JVM, coroutine-native, 
 | Module | What |
 |---|---|
 | `:errors` | Sentinels + `wrap`/`isError`/`asError`; HTTP `ErrorCode`→`toApiError`/`toHttpStatus`; gRPC `GrpcCode` mapping. Owns `ErrCircuitBroken`. |
-| `:identifiers` | Dependency-free `newUlid()` (sortable, time-ordered) + `newUuid()`. |
 | `:random` | Crypto-secure random strings/bytes over `SecureRandom` (hex/Base32/Base64url/custom alphabet). |
 | `:retry` | Coroutine-native exponential backoff + jitter: `Policy.execute { }` and a `Flow.retryWithPolicy` variant. |
 | `:circuitbreaking` | `execute { }` breaker with a `CircuitState` `StateFlow`, plus a `partitioned` per-key registry. |

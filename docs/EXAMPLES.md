@@ -36,16 +36,6 @@ Learn these once and every package reads the same way:
 
 ## Tier 1 — foundation & networking spine
 
-### `:identifiers` — sortable IDs
-
-```kotlin
-import com.primandproper.platform.identifiers.*
-
-val id = newUlid()          // 26-char Crockford base32, time-ordered (the xid analog)
-isValidUlid(id)             // true
-val u = newUuid()           // UUIDv4
-```
-
 ### `:errors` — sentinels, wrapping, HTTP/gRPC mapping
 
 Errors are matched by **identity** through the wrap chain (Go's `errors.Is`), and map to transport
