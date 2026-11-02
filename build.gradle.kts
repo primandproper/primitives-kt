@@ -12,7 +12,7 @@ plugins {
 // leaves JitPack only the version to substitute (from the git tag, which it does reliably) and
 // sidesteps its unpredictable inter-module *group* rewriting (jitpack.io#4112). Consumers then use
 // `com.github.primandproper.primitives-kt:<module>:<tag>`. Override with `-PpublishGroup=…` for a
-// different repository (e.g. a future Maven Central release under com.primandproper.platform).
+// different repository (e.g. a future Maven Central release under software.primandproper.primitives).
 group = (findProperty("publishGroup") as String?) ?: "com.github.primandproper.primitives-kt"
 // Defaults to a snapshot for local `publishToMavenLocal`; the tag-triggered CI publish job
 // (.github/workflows/publish.yml) passes `-PpublishVersion=<tag>` so the remote artifacts carry the
@@ -25,7 +25,7 @@ subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
 
     // Every module carries the same Maven coordinates as the root. Without this a sub-module's
-    // group is empty, so nothing can resolve it by `com.primandproper.platform:<module>` — neither
+    // group is empty, so nothing can resolve it by `software.primandproper.primitives:<module>` — neither
     // a composite build's dependency substitution nor a Maven publication. (JitPack overrides these
     // with `com.github.<owner>.<repo>:<module>:<tag>` at build time; they matter for the local and
     // mavenLocal paths.)

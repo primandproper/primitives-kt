@@ -9,7 +9,7 @@ plugins {
 // manager over the LaunchDarkly Android client SDK. The LaunchDarkly manager requires an Application
 // context and network init, so it is exercised on-device rather than in the off-device unit build.
 android {
-    namespace = "com.primandproper.platform.featureflags.android"
+    namespace = "software.primandproper.primitives.featureflags.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
     defaultConfig { minSdk = libs.versions.minSdk.get().toInt() }
     compileOptions {

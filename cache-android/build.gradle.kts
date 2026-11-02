@@ -11,7 +11,7 @@ plugins {
 // work mergeable. Unit tests run on the JVM against a fake in-memory `DataStore<Preferences>`, so no
 // device, emulator, or Robolectric is required.
 android {
-    namespace = "com.primandproper.platform.cache.android"
+    namespace = "software.primandproper.primitives.cache.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
     defaultConfig { minSdk = libs.versions.minSdk.get().toInt() }
     compileOptions {

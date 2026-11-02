@@ -9,7 +9,7 @@ plugins {
 // interface so JVM unit tests exercise it with an in-memory fake; KeystoreSecretStore.create() builds
 // the real encrypted store on-device.
 android {
-    namespace = "com.primandproper.platform.secrets.android"
+    namespace = "software.primandproper.primitives.secrets.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

@@ -13,7 +13,7 @@ plugins {
 // with an `Observer` span and testable off-device against the api module's `FakeHttpClient`. Unit tests
 // run on the JVM — no device, emulator, Robolectric, or network.
 android {
-    namespace = "com.primandproper.platform.uploads.android"
+    namespace = "software.primandproper.primitives.uploads.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
     defaultConfig { minSdk = libs.versions.minSdk.get().toInt() }
     compileOptions {

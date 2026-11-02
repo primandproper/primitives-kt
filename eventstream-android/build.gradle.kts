@@ -14,7 +14,7 @@ plugins {
 // Unit tests run on the JVM against OkHttp's `MockWebServer` — real SSE framing and a real WebSocket
 // upgrade, no device, emulator, or Robolectric required.
 android {
-    namespace = "com.primandproper.platform.eventstream.android"
+    namespace = "software.primandproper.primitives.eventstream.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
     defaultConfig { minSdk = libs.versions.minSdk.get().toInt() }
     compileOptions {

@@ -7,7 +7,7 @@ plugins {
 // builder. Android library because it depends on the Logcat backend. Mirrors how platform-go's
 // observability/config.go imports each pillar's backend to assemble Pillars.
 android {
-    namespace = "com.primandproper.platform.observability"
+    namespace = "software.primandproper.primitives.observability"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

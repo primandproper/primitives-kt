@@ -2,7 +2,7 @@
 PWD := $(shell pwd)
 
 # PATHS
-GROUP := com.primandproper.platform
+GROUP := software.primandproper.primitives
 
 # TOOL VERSIONS
 GRADLE_VERSION := 8.11

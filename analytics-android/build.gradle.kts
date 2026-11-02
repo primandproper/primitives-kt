@@ -12,7 +12,7 @@ plugins {
 //  - BufferingEventReporter — a local, bounded, thread-safe in-memory buffer that implements the same
 //    interface, for offline capture / testing / a pre-write-key stand-in.
 android {
-    namespace = "com.primandproper.platform.analytics.android"
+    namespace = "software.primandproper.primitives.analytics.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.primandproper.platform.observability.logcat"
+    namespace = "software.primandproper.primitives.observability.logcat"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

@@ -1,0 +1,19 @@
+package software.primandproper.primitives.notifications.async.noop
+
+import software.primandproper.primitives.notifications.async.AsyncEvent
+import software.primandproper.primitives.notifications.async.AsyncNotifier
+
+/**
+ * An [AsyncNotifier] that discards every event — the port of platform-go's `async/noop.asyncNotifier`.
+ * The safe default when no async backend is configured, and for tests that don't care about delivery.
+ */
+public object NoopAsyncNotifier : AsyncNotifier {
+    override suspend fun publish(
+        channel: String,
+        event: AsyncEvent,
+    ) {
+    }
+
+    override suspend fun close() {
+    }
+}
