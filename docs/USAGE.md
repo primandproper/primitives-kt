@@ -341,7 +341,7 @@ When a unit just needs a *working* observer and you aren't asserting on it, use 
 
 ## 10. Configuration reference
 
-The `Observability { }` block (see [`Config.kt`](../observability-api/src/main/kotlin/com/primandproper/platform/observability/Config.kt)):
+The `Observability { }` block (see [`Config.kt`](../observability-api/src/main/kotlin/software/primandproper/primitives/observability/Config.kt)):
 
 | Field | Default | Notes |
 |---|---|---|
@@ -356,5 +356,5 @@ The `Observability { }` block (see [`Config.kt`](../observability-api/src/main/k
 `validate()` runs inside the builder and throws `IllegalArgumentException` on missing/invalid values,
 so a misconfigured stack fails loudly at startup rather than silently dropping telemetry.
 
-Standard attribute keys live in [`Keys`](../observability-api/src/main/kotlin/com/primandproper/platform/observability/Keys.kt) —
+Standard attribute keys live in [`Keys`](../observability-api/src/main/kotlin/software/primandproper/primitives/observability/Keys.kt) —
 prefer them over string literals so a value is named consistently wherever it's recorded.

@@ -11,15 +11,15 @@ open an issue rather than guessing.
 
 Learn these once and every package reads the same way:
 
-- **Package root.** Everything is under `com.primandproper.platform.<area>` (e.g.
-  `com.primandproper.platform.cache`). Backends live in a sub-package (`...cache.datastore`).
+- **Package root.** Everything is under `software.primandproper.primitives.<area>` (e.g.
+  `software.primandproper.primitives.cache`). Backends live in a sub-package (`...cache.datastore`).
 - **Observability is opt-in, never required.** Factories that can emit telemetry take
   `logger: Logger? = null`, `tracerProvider: TracerProvider? = null`, or a bundled
   `observer: Observer` — all defaulting to no-ops. Omit them and nothing breaks; pass them and the
   call is traced and log-correlated. (`Logger`/`Tracer`/`Observer` come from
-  `com.primandproper.platform.observability`.)
+  `software.primandproper.primitives.observability`.)
 - **Circuit breakers are opt-in too.** Anything that calls a remote dependency accepts an optional
-  `circuitBreaker: CircuitBreaker?` from `com.primandproper.platform.circuitbreaking`.
+  `circuitBreaker: CircuitBreaker?` from `software.primandproper.primitives.circuitbreaking`.
 - **`suspend` where I/O happens.** Network/disk/lock calls are `suspend` — call them inside a
   coroutine (`runBlocking { }`, `runTest { }`, or another `suspend fun`). Pure/CPU helpers
   (hashers, `numbers`, `bitmask`, `compression`, `fake`, plain TOTP) are ordinary functions.
@@ -42,8 +42,8 @@ Errors are matched by **identity** through the wrap chain (Go's `errors.Is`), an
 codes without leaking internals.
 
 ```kotlin
-import com.primandproper.platform.errors.*
-import com.primandproper.platform.errors.http.*
+import software.primandproper.primitives.errors.*
+import software.primandproper.primitives.errors.http.*
 
 val err = wrap(ErrNoRows, "loading user u-123")   // PlatformException? (null if cause was null)
 
@@ -55,7 +55,7 @@ val status = mapping.code.toHttpStatus()           // 404
 ### `:random` — crypto-secure strings
 
 ```kotlin
-import com.primandproper.platform.random.*
+import software.primandproper.primitives.random.*
 
 val gen: RandomGenerator = SecureRandomGenerator()      // over SecureRandom
 val token = gen.generateHexEncodedString(16)
@@ -66,7 +66,7 @@ val bytes = gen.generateRawBytes(32)
 ### `:retry` — coroutine-native backoff
 
 ```kotlin
-import com.primandproper.platform.retry.*
+import software.primandproper.primitives.retry.*
 
 val policy = ExponentialBackoffPolicy {
     maxAttempts = 5
@@ -83,7 +83,7 @@ fun <T> Flow<T>.resilient(): Flow<T> = retryWithPolicy { maxAttempts = 3 }
 ### `:circuitbreaking` — trip on repeated failure
 
 ```kotlin
-import com.primandproper.platform.circuitbreaking.*
+import software.primandproper.primitives.circuitbreaking.*
 import kotlin.time.Duration.Companion.seconds
 
 val breaker = CircuitBreaker {
@@ -94,7 +94,7 @@ val resp = breaker.execute { flakyDependency() }   // suspend; throws ErrCircuit
 breaker.state.value                                 // CircuitState.CLOSED / OPEN / HALF_OPEN
 
 // One breaker per key (per-tenant, per-host, …):
-import com.primandproper.platform.circuitbreaking.partitioned.*
+import software.primandproper.primitives.circuitbreaking.partitioned.*
 val keyed = KeyedCircuitBreaker(KeyedCircuitBreakerConfig().apply {
     keys += listOf("tenant-a", "tenant-b")
     base { failureThreshold = 5 }
@@ -107,8 +107,8 @@ keyed["tenant-a"].execute { call() }
 Traced HTTP with header redaction built in. OkHttp for client/Android, Ktor/CIO for server.
 
 ```kotlin
-import com.primandproper.platform.httpclient.*
-import com.primandproper.platform.httpclient.okhttp.OkHttpHttpClient   // or ...ktor.KtorHttpClient
+import software.primandproper.primitives.httpclient.*
+import software.primandproper.primitives.httpclient.okhttp.OkHttpHttpClient   // or ...ktor.KtorHttpClient
 import kotlin.time.Duration.Companion.seconds
 
 val http: HttpClient = OkHttpHttpClient.create(HttpClientConfig { timeout = 5.seconds })
@@ -137,7 +137,7 @@ http.close()
 `get` returns `T?` (null is a miss). `InMemoryCache` and the DataStore cache are both `BatchCache`.
 
 ```kotlin
-import com.primandproper.platform.cache.*
+import software.primandproper.primitives.cache.*
 
 val cache: BatchCache<String> = InMemoryCache()
 cache.set("greeting", "hello")
@@ -147,8 +147,8 @@ val v: String? = cache.get("greeting")
 ### `:cryptography-*` — AEAD encryption + hashing
 
 ```kotlin
-import com.primandproper.platform.cryptography.encryption.aes.newAesEncryptorDecryptor
-import com.primandproper.platform.cryptography.hashing.sha256.newSHA256Hasher
+import software.primandproper.primitives.cryptography.encryption.aes.newAesEncryptorDecryptor
+import software.primandproper.primitives.cryptography.hashing.sha256.newSHA256Hasher
 
 val aead = newAesEncryptorDecryptor(key = ByteArray(32) { /* your 32-byte key */ 0 })
 val sealed = aead.encrypt("4111-1111-1111-1111")   // suspend; base64url(nonce||ciphertext||tag)
@@ -160,7 +160,7 @@ val digest = newSHA256Hasher().hash("payload")      // non-suspend; lowercase he
 ### `:secrets-*` — read secrets from the environment
 
 ```kotlin
-import com.primandproper.platform.secrets.env.EnvSecretSource
+import software.primandproper.primitives.secrets.env.EnvSecretSource
 
 val secrets = EnvSecretSource()
 val token = secrets.getSecret("API_TOKEN")   // suspend; throws SecretNotFoundException if unset.
@@ -172,7 +172,7 @@ val token = secrets.getSecret("API_TOKEN")   // suspend; throws SecretNotFoundEx
 The boolean check is `canUseFeature` (returns `false` on any error). All evals are `suspend`.
 
 ```kotlin
-import com.primandproper.platform.featureflags.*
+import software.primandproper.primitives.featureflags.*
 
 val flags = InMemoryFeatureFlagManager(mapOf("new-checkout" to true, "max-items" to 42L))
 
@@ -189,7 +189,7 @@ from `:featureflags-launchdarkly` in production — same interface.
 `addUser` = identify, `eventOccurred` = track. Both `suspend`.
 
 ```kotlin
-import com.primandproper.platform.analytics.segment.SegmentEventReporter
+import software.primandproper.primitives.analytics.segment.SegmentEventReporter
 
 val reporter = SegmentEventReporter(apiToken = "write-key")
 reporter.addUser("user-123", mapOf("plan" to "pro"))
@@ -204,7 +204,7 @@ reporter.close()
 ### `:ratelimiting-*` — token bucket
 
 ```kotlin
-import com.primandproper.platform.ratelimiting.InMemoryRateLimiter
+import software.primandproper.primitives.ratelimiting.InMemoryRateLimiter
 
 val limiter = InMemoryRateLimiter(requestsPerSec = 10.0, burstSize = 20)
 if (limiter.allow(clientIp)) handle() else reject429()   // suspend; true = within limit
@@ -216,8 +216,8 @@ shared across callers is the server's job, enforced by the service you're callin
 ### `:uploads-*` — signed-URL client uploads
 
 ```kotlin
-import com.primandproper.platform.uploads.*
-import com.primandproper.platform.uploads.objectstorage.MemoryBucket   // or filesystem
+import software.primandproper.primitives.uploads.*
+import software.primandproper.primitives.uploads.objectstorage.MemoryBucket   // or filesystem
 
 val uploads = Uploader(MemoryBucket(), bucketName = "avatars")
 uploads.saveBytes("u-123/avatar.png", pngBytes)          // suspend
@@ -227,8 +227,8 @@ val bytes = uploads.readBytes("u-123/avatar.png")        // suspend
 ### `:eventstream-*` — consuming server-sent events
 
 ```kotlin
-import com.primandproper.platform.eventstream.*
-import com.primandproper.platform.eventstream.ktor.*
+import software.primandproper.primitives.eventstream.*
+import software.primandproper.primitives.eventstream.ktor.*
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
 
@@ -251,9 +251,9 @@ fun Application.streaming(observer: Observer) {
 ### `:notifications-*` — push notifications
 
 ```kotlin
-import com.primandproper.platform.notifications.*
-import com.primandproper.platform.notifications.fcm.FcmPushSender
-import com.primandproper.platform.httpclient.okhttp.OkHttpHttpClient
+import software.primandproper.primitives.notifications.*
+import software.primandproper.primitives.notifications.fcm.FcmPushSender
+import software.primandproper.primitives.httpclient.okhttp.OkHttpHttpClient
 
 val push = FcmPushSender(
     projectId = "my-project",
@@ -266,7 +266,7 @@ push.sendPush(PLATFORM_ANDROID, deviceToken, PushMessage(title = "Hi", body = "N
 ### `:qrcodes` — a scannable 2FA QR
 
 ```kotlin
-import com.primandproper.platform.qrcodes.DefaultQrCodeBuilder
+import software.primandproper.primitives.qrcodes.DefaultQrCodeBuilder
 
 val qr = DefaultQrCodeBuilder(issuer = "MyApp")
 val dataUri = qr.buildQrCode(username = "user@example.com", twoFactorSecret = base32Secret)
@@ -276,7 +276,7 @@ val dataUri = qr.buildQrCode(username = "user@example.com", twoFactorSecret = ba
 ### `:compression` — zstd / S2
 
 ```kotlin
-import com.primandproper.platform.compression.*
+import software.primandproper.primitives.compression.*
 
 val zstd = newCompressor(Algorithm.ZSTD)
 val packed = zstd.compressBytes(payload)             // non-suspend
@@ -286,7 +286,7 @@ val original = zstd.decompressBytes(packed)          // guards against decompres
 ### `:numbers` — decimal rounding & scaling
 
 ```kotlin
-import com.primandproper.platform.numbers.*
+import software.primandproper.primitives.numbers.*
 
 roundToDecimalPlaces(3.14159f, precision = 2)        // 3.14 (HALF_UP)
 scale(2.5f, factor = 2.0f)                            // 5.0
@@ -295,7 +295,7 @@ scale(2.5f, factor = 2.0f)                            // 5.0
 ### `:bitmask` — width-typed flag sets
 
 ```kotlin
-import com.primandproper.platform.bitmask.Bitmask
+import software.primandproper.primitives.bitmask.Bitmask
 
 val READ = 1uL; val WRITE = 2uL; val ADMIN = 4uL
 val perms = Bitmask.of(width = 8, READ, WRITE)       // immutable; ops return new instances
@@ -307,7 +307,7 @@ val elevated = perms.set(ADMIN)
 ### `:fake` — deterministic test data
 
 ```kotlin
-import com.primandproper.platform.fake.Fake
+import software.primandproper.primitives.fake.Fake
 
 data class Person(val fullName: String, val email: String, val age: Int)
 

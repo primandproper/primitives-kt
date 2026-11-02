@@ -21,7 +21,7 @@ plugins {
 // Gradle plugin and registers a `PushMessageHandler` via `PlatformFirebaseMessaging.handler` (or by
 // having its `Application` implement `PushMessageHandlerProvider`).
 android {
-    namespace = "com.primandproper.platform.notifications.android"
+    namespace = "software.primandproper.primitives.notifications.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

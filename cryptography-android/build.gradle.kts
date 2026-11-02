@@ -7,7 +7,7 @@ plugins {
 // provisioned through Jetpack Security (androidx.security:security-crypto). The AES-256-GCM transform
 // runs against a non-exportable keystore-backed SecretKey, so plaintext keys never touch the heap.
 android {
-    namespace = "com.primandproper.platform.cryptography.android"
+    namespace = "software.primandproper.primitives.cryptography.android"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
