@@ -25,8 +25,8 @@ subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
 
     // Every module carries the same Maven coordinates as the root. Without this a sub-module's
-    // group is empty, so nothing can resolve it by `software.primandproper.primitives:<module>` — neither
-    // a composite build's dependency substitution nor a Maven publication. (JitPack overrides these
+    // group is empty, so nothing can resolve it by `com.github.primandproper.primitives-kt:<module>` —
+    // neither a composite build's dependency substitution nor a Maven publication. (JitPack overrides these
     // with `com.github.<owner>.<repo>:<module>:<tag>` at build time; they matter for the local and
     // mavenLocal paths.)
     group = rootProject.group
