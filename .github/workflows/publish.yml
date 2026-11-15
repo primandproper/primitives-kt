@@ -5,7 +5,7 @@
 # completely untouched, so a failure here can never regress the reliable JVM publish.
 #
 # Consumers add the GitHub Packages repository (authenticated) and depend on
-# `com.github.primandproper.platform-kt:<module>:<tag>` — see README → "Android modules".
+# `com.github.primandproper.primitives-kt:<module>:<tag>` — see README → "Android modules".
 name: Publish
 
 on:
