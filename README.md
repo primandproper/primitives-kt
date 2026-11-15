@@ -189,8 +189,9 @@ only on other JVM modules, so no `.aar` is ever pulled into a server build.
 
 ### Android modules (`.aar`)
 
-Ten packages ship a real Android-library counterpart. They carry the **same group and version scheme**
-as the JVM modules — `com.github.primandproper.primitives-kt:<module>:<tag>` — but package as `.aar`:
+Ten packages ship a real Android-library counterpart. They carry the **same group** as the JVM modules
+— `com.github.primandproper.primitives-kt:<module>:<version>` — but package as `.aar`, and their
+version is the tag **without its leading `v`** (tag `v0.1.0` publishes `0.1.0`):
 
 | Module (artifact ID) | What |
 |---|---|
@@ -257,7 +258,7 @@ by a tag-triggered CI job (`.github/workflows/publish.yml`): pushing a `v*` tag 
 there can never regress JitPack's reliable JVM flow.
 
 Consume them by adding the authenticated GitHub Packages repository (GitHub requires a token even for
-public packages) and depending on the same coordinate as the JVM modules:
+public packages) and depending on the same group and module names as the JVM modules (version without the `v`):
 
 ```kotlin
 repositories {
@@ -270,7 +271,7 @@ repositories {
     }
 }
 dependencies {
-    implementation("com.github.primandproper.primitives-kt:cryptography-android:v0.1.0")
+    implementation("com.github.primandproper.primitives-kt:cryptography-android:0.1.0")
 }
 ```
 
