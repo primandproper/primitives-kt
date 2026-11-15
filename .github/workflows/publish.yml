@@ -41,8 +41,11 @@ jobs:
           java-version: "17"
 
       # The Android modules are part of this (non-jvmOnly) build, so the SDK + accepted licenses are
-      # required — identical to ci.yml's setup.
+      # required — identical to ci.yml's setup, including `packages: ''` (the action's default asks
+      # for the withdrawn `tools` package and fails; see ci.yml).
       - uses: android-actions/setup-android@v3
+        with:
+          packages: ""
 
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
